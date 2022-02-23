@@ -3,7 +3,7 @@ import socket
 import logging
 import time
 import socketserver
-import sys
+
 
 PORT = 5060
 hostname = socket.gethostname()

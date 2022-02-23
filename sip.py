@@ -15,14 +15,9 @@
 
 import socketserver
 import re
-import string
-import socket
-# import threading
-import sys
 import time
 import logging
 
-HOST, PORT = '10.10.13.91', 5060
 rx_register = re.compile("^REGISTER")
 rx_invite = re.compile("^INVITE")
 rx_ack = re.compile("^ACK")
@@ -46,13 +41,7 @@ rx_contact = re.compile("^Contact:")
 rx_ccontact = re.compile("^m:")
 rx_uri = re.compile("sip:([^@]*)@([^;>$]*)")
 rx_addr = re.compile("sip:([^ ;>$]*)")
-# rx_addrport = re.compile("([^:]*):(.*)")
 rx_code = re.compile("^SIP/2.0 ([^ ]*)")
-# rx_invalid = re.compile("^192\.168")
-# rx_invalid2 = re.compile("^10\.")
-# rx_cseq = re.compile("^CSeq:")
-# rx_callid = re.compile("Call-ID: (.*)$")
-# rx_rr = re.compile("^Record-Route:")
 rx_request_uri = re.compile("^([^ ]*) sip:([^ ]*) SIP/2.0")
 rx_route = re.compile("^Route:")
 rx_contentlength = re.compile("^Content-Length:")
@@ -114,7 +103,6 @@ class UDPHandler(socketserver.BaseRequestHandler):
         return data
 
     def addTopVia(self):
-        branch = ""
         data = []
         for line in self.data:
             if rx_via.search(line) or rx_cvia.search(line):
@@ -123,7 +111,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
                     branch = md.group(1)
                     via = "%s;branch=%sm" % (topvia, branch)
                     data.append(via)
-                # rport processing
+                # report processing
                 if rx_rport.search(line):
                     text = "received=%s;rport=%d" % self.client_address
                     via = line.replace("rport", text)
@@ -205,7 +193,6 @@ class UDPHandler(socketserver.BaseRequestHandler):
             if line == "":
                 break
         data.append("")
-        # text = string.join(data, "\r\n")
         text = "\r\n".join(data).encode('utf-8')
         self.socket.sendto(text, self.client_address)
         showtime()
@@ -219,11 +206,7 @@ class UDPHandler(socketserver.BaseRequestHandler):
         header_expires = ""
         expires = 0
         validity = 0
-        authorization = ""
-        index = 0
-        auth_index = 0
-        data = []
-        size = len(self.data)
+
         for line in self.data:
             if rx_to.search(line) or rx_cto.search(line):
                 md = rx_uri.search(line)
@@ -267,11 +250,11 @@ class UDPHandler(socketserver.BaseRequestHandler):
 
     def processInvite(self):
         logging.debug("-----------------")
-        logging.debug(" INVITE received ")
+        logging.debug(" Pozvánka PRIJATÁ ")
         logging.debug("-----------------")
         origin = self.getOrigin()
         if len(origin) == 0 or origin not in registrar:
-            self.sendResponse("400 Bad Request")
+            self.sendResponse("400 Nesprávna požiadavka")
             return
         destination = self.getDestination()
         if len(destination) > 0:
@@ -290,13 +273,13 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 logging.info("<<< %s" % data[0])
                 logging.debug("---\n<< server send [%d]:\n%s\n---" % (len(text), text))
             else:
-                self.sendResponse("480 Temporarily Unavailable")
+                self.sendResponse("480 Dočasne nedostupné")
         else:
-            self.sendResponse("500 Server Internal Error")
+            self.sendResponse("500 Server problém")
 
     def processAck(self):
         logging.debug("--------------")
-        logging.debug(" ACK received ")
+        logging.debug(" ACK prijaté ")
         logging.debug("--------------")
         destination = self.getDestination()
         if len(destination) > 0:
@@ -308,7 +291,6 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 data = self.removeRouteHeader()
                 # insert Record-Route
                 data.insert(1, recordroute)
-                # text = string.join(data, "\r\n")
                 text = "\r\n".join(data).encode("utf-8")
                 socket.sendto(text, claddr)
                 showtime()
@@ -317,11 +299,11 @@ class UDPHandler(socketserver.BaseRequestHandler):
 
     def processNonInvite(self):
         logging.debug("----------------------")
-        logging.debug(" NonInvite received   ")
+        logging.debug(" NonInvite prijatý   ")
         logging.debug("----------------------")
         origin = self.getOrigin()
         if len(origin) == 0 or origin not in registrar:
-            self.sendResponse("400 Bad Request")
+            self.sendResponse("400 Nesprávna požiadavka")
             return
         destination = self.getDestination()
         if len(destination) > 0:
@@ -333,16 +315,15 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 data = self.removeRouteHeader()
                 # insert Record-Route
                 data.insert(1, recordroute)
-                # text = string.join(data, "\r\n")
                 text = "\r\n".join(data).encode("utf-8")
                 socket.sendto(text, claddr)
                 showtime()
                 logging.info("<<< %s" % data[0])
                 logging.debug("---\n<< server send [%d]:\n%s\n---" % (len(text), text))
             else:
-                self.sendResponse("406 Not Acceptable")
+                self.sendResponse("406 Nie je možné prijať")
         else:
-            self.sendResponse("500 Server Internal Error")
+            self.sendResponse("500 Server problém")
 
     def processCode(self):
         origin = self.getOrigin()
@@ -369,28 +350,22 @@ class UDPHandler(socketserver.BaseRequestHandler):
                 self.processInvite()
             elif rx_ack.search(request_uri):
                 self.processAck()
-            elif rx_bye.search(request_uri):
+
+            elif rx_bye.search(request_uri) or \
+                rx_cancel.search(request_uri) or \
+                rx_options.search(request_uri) or \
+                rx_info.search(request_uri) or \
+                rx_message.search(request_uri) or \
+                rx_refer.search(request_uri) or \
+                rx_prack.search(request_uri) or \
+                rx_update.search(request_uri):
                 self.processNonInvite()
-            elif rx_cancel.search(request_uri):
-                self.processNonInvite()
-            elif rx_options.search(request_uri):
-                self.processNonInvite()
-            elif rx_info.search(request_uri):
-                self.processNonInvite()
-            elif rx_message.search(request_uri):
-                self.processNonInvite()
-            elif rx_refer.search(request_uri):
-                self.processNonInvite()
-            elif rx_prack.search(request_uri):
-                self.processNonInvite()
-            elif rx_update.search(request_uri):
-                self.processNonInvite()
-            elif rx_subscribe.search(request_uri):
-                self.sendResponse("200 0K")
-            elif rx_publish.search(request_uri):
-                self.sendResponse("200 0K")
-            elif rx_notify.search(request_uri):
-                self.sendResponse("200 0K")
+
+            elif rx_subscribe.search(request_uri) or \
+                rx_publish.search(request_uri) or \
+                rx_notify.search(request_uri):
+                self.sendResponse("200 OK")
+
             elif rx_code.search(request_uri):
                 self.processCode()
             else:
