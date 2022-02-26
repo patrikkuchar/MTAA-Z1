@@ -1,0 +1,25 @@
+SIP Proxy
+IP adresa servera: 192.168.2.2
+Port servera: 5060
+
+Hovor zacal 'KucharMB', 192.168.2.3:38830
+v case 11:38:46
+ID hovoru: 7jxZsmhVoX
+prijimatelia hovoru:
+	'DavidPhone2', 192.168.2.4:48623
+
+Hovor ID: 7jxZsmhVoX
+medzi ('KucharMB', 'DavidPhone2') ukoncil 'DavidPhone2'
+v case 11:39:11
+
+Hovor zacal 'KucharPC', 192.168.2.2:50545
+v case 11:52:49
+ID hovoru: glZ~IHmwFr
+prijimatelia hovoru: 
+	'KucharMB', 192.168.2.3:38830
+	'DavidPhone', 192.168.2.5:55302
+
+Hovor ID: glZ~IHmwFr
+medzi ('KucharPC', 'KucharMB', 'DavidPhone') ukoncil 'KucharPC'
+v case 11:53:01
+
