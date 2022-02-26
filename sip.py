@@ -61,9 +61,6 @@ conf_call = []
 
 
 
-def quotechars(chars):
-    return ''.join(['.', c][c.isalnum()] for c in chars)
-
 def removeIP(name):
     return name.split('@')[0]
 
